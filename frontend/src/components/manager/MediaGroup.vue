@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import type { MediaMeta } from '../../api/fs';
+import { keepWheel } from '../../comfy/wheel-focus';
 import { usePointerSort } from '../../composables/usePointerSort';
 import { isMod } from '../../composables/useKeyboardScope';
 import { useVirtualRows } from '../../composables/useVirtualRows';
@@ -88,10 +89,7 @@ const sorter = usePointerSort(
 
 // Same rule as the widget: keep the wheel while this list can scroll that way, else let it reach the canvas.
 function onListWheel(event: WheelEvent): void {
-  const element = event.currentTarget as HTMLElement;
-  const canScrollDown = element.scrollTop + element.clientHeight < element.scrollHeight - 1;
-  const canScrollUp = element.scrollTop > 0;
-  if ((event.deltaY > 0 && canScrollDown) || (event.deltaY < 0 && canScrollUp)) {
+  if (keepWheel(event.currentTarget as HTMLElement, event.deltaY)) {
     event.stopPropagation();
   }
 }

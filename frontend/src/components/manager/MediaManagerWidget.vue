@@ -12,6 +12,7 @@ import Lightbox from './Lightbox.vue';
 import MediaGroup, { type GroupNotice } from './MediaGroup.vue';
 import { outputIndexes } from '../../state/items';
 import type { ExecutionRuntime } from '../../comfy/widget-bridge';
+import { keepWheel } from '../../comfy/wheel-focus';
 
 const props = defineProps<{ store: MediaStore; runtime: ExecutionRuntime }>();
 
@@ -178,9 +179,7 @@ function onWheel(event: WheelEvent): void {
   if (!root) {
     return;
   }
-  const canScrollDown = root.scrollTop + root.clientHeight < root.scrollHeight - 1;
-  const canScrollUp = root.scrollTop > 0;
-  if ((event.deltaY > 0 && canScrollDown) || (event.deltaY < 0 && canScrollUp)) {
+  if (keepWheel(root, event.deltaY)) {
     event.stopPropagation();
   }
 }

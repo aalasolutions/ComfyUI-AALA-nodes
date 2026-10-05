@@ -2,17 +2,38 @@ import { isTextInput } from '../composables/useKeyboardScope';
 
 // Vue Nodes mode forwards every wheel over a node to the canvas in its own capture listener, unless the
 // target sits in a [data-capture-wheel="true"] element that contains the focused element. This window
-// capture listener runs first: it focuses our scroller when it can scroll that way, and releases focus at
+// capture listener runs first: it focuses our scroller while it keeps the wheel, and releases focus at
 // the ends so the canvas zooms there.
 
 const SELECTOR = '[data-capture-wheel="true"]';
+const LATCH_MS = 200;
 let users = 0;
+let latched: HTMLElement | null = null;
+let lastWheelAt = 0;
 
 function canScroll(element: HTMLElement, deltaY: number): boolean {
   if (deltaY > 0) {
     return element.scrollTop + element.clientHeight < element.scrollHeight - 1;
   }
   return deltaY < 0 && element.scrollTop > 0;
+}
+
+/** True while a scroll that started in this element is still going, so fast scrolls past the end do not zoom the canvas. */
+export function keepWheel(element: HTMLElement, deltaY: number): boolean {
+  const now = performance.now();
+  if (latched === element && now - lastWheelAt < LATCH_MS) {
+    lastWheelAt = now;
+    return true;
+  }
+  if (canScroll(element, deltaY)) {
+    latched = element;
+    lastWheelAt = now;
+    return true;
+  }
+  if (latched === element) {
+    latched = null;
+  }
+  return false;
 }
 
 function onWheel(event: WheelEvent): void {
@@ -29,7 +50,7 @@ function onWheel(event: WheelEvent): void {
   if (isTextInput(active) && active?.closest('.aala-media')) {
     return;
   }
-  if (canScroll(scroller, event.deltaY)) {
+  if (keepWheel(scroller, event.deltaY)) {
     if (!focusedInside) {
       scroller.focus({ preventScroll: true });
     }
