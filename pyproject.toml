@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "comfyui-aala-nodes"
+version = "0.1.0"
+description = "Aala media utilities and UI nodes for ComfyUI"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Aala Media" }]
+
+[tool.setuptools]
+packages = ["aala_media", "aala_media.decode", "aala_media.nodes", "aala_media.server"]
