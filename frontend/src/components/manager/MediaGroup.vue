@@ -264,7 +264,7 @@ function openGroupMenu(event: MouseEvent): void {
 function onLimitChange(event: Event): void {
   const input = event.target as HTMLInputElement;
   const value = Number(input.value);
-  if (input.value.trim() !== '' && Number.isFinite(value) && value >= 0) {
+  if (input.value.trim() !== '' && Number.isFinite(value) && value >= 1) {
     const deactivated = props.store.setLimit(props.kind, value);
     emit('notify', deactivated > 0 ? { tone: 'info', text: en.deactivated(deactivated) } : null);
   }
@@ -295,7 +295,7 @@ function onLimitChange(event: Event): void {
       </span>
       <label class="aala-group__limit" title="Max active">
         <span>Max</span>
-        <input type="number" min="0" step="1" :value="limit" @change="onLimitChange" @keydown.enter="($event.target as HTMLInputElement).blur()" />
+        <input type="number" min="1" step="1" :value="limit" @change="onLimitChange" @keydown.enter="($event.target as HTMLInputElement).blur()" />
       </label>
       <button type="button" class="aala-btn aala-btn--small" :title="`Add ${label.toLowerCase()}`" @click="emit('add')">
         <Icon name="plus" :size="12" /><span class="aala-group__add-label">Add</span>

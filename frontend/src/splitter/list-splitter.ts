@@ -1,3 +1,4 @@
+import { getApp } from '../comfy/host';
 import { KINDS, type MediaKind } from '../state/schema';
 import { MEDIA_STATE_EVENT, type MediaStateEventDetail } from './events';
 
@@ -128,10 +129,11 @@ function socketPrefix(type: string): string {
 }
 
 // Drops outgoing links whose target cannot take the new type, as core MatchType nodes do.
+// Skipped while a graph loads: target inputs (such as autogrow slots) are not rebuilt yet.
 function dropIncompatibleLinks(node: GraphNode, type: string): void {
   const graph = node.graph;
   const liteGraph = window.LiteGraph;
-  if (!graph?.getLink || !liteGraph || type === ANY_TYPE) {
+  if (!graph?.getLink || !liteGraph || type === ANY_TYPE || getApp().configuringGraph) {
     return;
   }
   node.outputs.forEach((output, index) => {
@@ -152,8 +154,7 @@ function resizeOutputs(node: GraphNode, count: number, type: string, layoutChang
     node.removeOutput(node.outputs.length - 1);
   }
   while (node.outputs.length < count) {
-    const index = node.outputs.length + 1;
-    node.addOutput(String(index), type);
+    node.addOutput(String(node.outputs.length), type);
   }
   if (node.outputs.some((output) => output.type !== type)) {
     dropIncompatibleLinks(node, type);

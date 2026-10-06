@@ -59,7 +59,7 @@ export function createMediaStore(onCommit: () => void) {
 
   /** Returns how many items were deactivated because the new limit is lower than the active count. */
   function setLimit(kind: MediaKind, value: number): number {
-    const limit = Math.max(0, Math.floor(value));
+    const limit = Math.max(1, Math.floor(value));
     return commit((state) => items.applyLimit(state, kind, limit)) ?? 0;
   }
 
