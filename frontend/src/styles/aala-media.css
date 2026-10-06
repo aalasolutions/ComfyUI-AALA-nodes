@@ -1232,8 +1232,12 @@ span.aala-row__head {
   color: var(--aala-muted);
 }
 
-/* Wheel scrollers take focus only so Vue Nodes mode leaves the wheel to them; they are not keyboard stops. */
-.aala-media[data-capture-wheel='true']:focus,
-.aala-media [data-capture-wheel='true']:focus {
-  outline: none;
+/* The widget whose lists take the wheel; a click inside sets it, a click elsewhere clears it. */
+.aala-media[data-aala-wheel-root] {
+  overscroll-behavior: contain;
+}
+
+.aala-media.aala-media--active {
+  outline: 2px solid var(--aala-accent);
+  outline-offset: -2px;
 }

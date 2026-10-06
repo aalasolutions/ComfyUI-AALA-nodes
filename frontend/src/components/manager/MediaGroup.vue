@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import type { MediaMeta } from '../../api/fs';
-import { keepWheel } from '../../comfy/wheel-focus';
 import { usePointerSort } from '../../composables/usePointerSort';
 import { isMod } from '../../composables/useKeyboardScope';
 import { useVirtualRows } from '../../composables/useVirtualRows';
@@ -86,13 +85,6 @@ const sorter = usePointerSort(
     }
   },
 );
-
-// Same rule as the widget: keep the wheel while this list can scroll that way, else let it reach the canvas.
-function onListWheel(event: WheelEvent): void {
-  if (keepWheel(event.currentTarget as HTMLElement, event.deltaY)) {
-    event.stopPropagation();
-  }
-}
 
 // Drop selection entries whose items are gone (removed, undo, workflow load).
 watch(items, (current) => {
@@ -326,9 +318,6 @@ function onLimitChange(event: Event): void {
         v-if="items.length"
         ref="scroller"
         class="aala-items-scroll"
-        data-capture-wheel="true"
-        tabindex="-1"
-        @wheel="onListWheel"
       >
         <div ref="list" class="aala-items" :class="`aala-items--${layout}`" :style="listStyle">
           <ItemCard

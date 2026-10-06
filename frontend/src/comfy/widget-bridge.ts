@@ -3,7 +3,7 @@ import MediaManagerWidget from '../components/manager/MediaManagerWidget.vue';
 import { createMediaStore } from '../state/store';
 import { emitMediaStateChanged } from '../splitter/events';
 import { recordGraphChange, type ComfyNode, type CustomWidgetResult } from './host';
-import { markWheelScroller, useWheelFocus } from './wheel-focus';
+import { useWheelFocus } from './wheel-focus';
 
 const WIDGET_MIN_HEIGHT = 220;
 // Room for a one-line group header (title, count, Max, Add, menu) and a list card with its controls.
@@ -44,8 +44,7 @@ function adoptReplacement(removed: LiveWidget, graph: object | null | undefined)
 export function createMediaStateWidget(node: ComfyNode, inputName: string): CustomWidgetResult {
   const element = document.createElement('div');
   element.className = 'aala-media';
-  markWheelScroller(element);
-  const releaseWheel = useWheelFocus();
+  const releaseWheel = useWheelFocus(element);
 
   const store = createMediaStore(() => {
     emitMediaStateChanged(node);

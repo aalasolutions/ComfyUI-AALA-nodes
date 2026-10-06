@@ -61,6 +61,7 @@ interface ChangeTracker {
 
 export interface ComfyApp {
   registerExtension(extension: ComfyExtension): void;
+  canvas?: { canvas?: HTMLCanvasElement } | null;
   extensionManager?: {
     workflow?: { activeWorkflow?: { changeTracker?: ChangeTracker | null } | null };
     setting?: SettingStore;

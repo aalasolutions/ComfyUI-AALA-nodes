@@ -12,7 +12,6 @@ import Lightbox from './Lightbox.vue';
 import MediaGroup, { type GroupNotice } from './MediaGroup.vue';
 import { outputIndexes } from '../../state/items';
 import type { ExecutionRuntime } from '../../comfy/widget-bridge';
-import { keepWheel } from '../../comfy/wheel-focus';
 
 const props = defineProps<{ store: MediaStore; runtime: ExecutionRuntime }>();
 
@@ -172,21 +171,10 @@ async function onBrowserConfirm(files: FileEntry[]): Promise<void> {
 }
 
 const lightboxItems = computed(() => (lightbox.value ? state.value.groups[lightbox.value.kind] : []));
-
-function onWheel(event: WheelEvent): void {
-  const scroller = event.currentTarget as HTMLElement | null;
-  const root = scroller?.parentElement;
-  if (!root) {
-    return;
-  }
-  if (keepWheel(root, event.deltaY)) {
-    event.stopPropagation();
-  }
-}
 </script>
 
 <template>
-  <div class="aala-manager" @pointerdown.stop @wheel="onWheel">
+  <div class="aala-manager" @pointerdown.stop>
     <StatusBanner
       v-if="store.data.status"
       :tone="store.data.status.tone"

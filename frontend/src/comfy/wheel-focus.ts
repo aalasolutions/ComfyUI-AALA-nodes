@@ -1,73 +1,62 @@
-import { isTextInput } from '../composables/useKeyboardScope';
+import { getApp } from './host';
 
-// Vue Nodes mode forwards every wheel over a node to the canvas in its own capture listener, unless the
-// target sits in a [data-capture-wheel="true"] element that contains the focused element. This window
-// capture listener runs first: it focuses our scroller while it keeps the wheel, and releases focus at
-// the ends so the canvas zooms there.
+// Click-to-activate wheel: a click inside a widget makes it the one active widget, whose lists take the
+// wheel; any other click releases it. Over an inactive widget, and with Ctrl/Cmd, the wheel goes to the
+// canvas. Window capture listeners run before the Vue Nodes TransformPane forwarding.
 
-const SELECTOR = '[data-capture-wheel="true"]';
-const LATCH_MS = 200;
+const ROOT_SELECTOR = '[data-aala-wheel-root]';
+const ACTIVE_CLASS = 'aala-media--active';
 let users = 0;
-let latched: HTMLElement | null = null;
-let lastWheelAt = 0;
+let active: HTMLElement | null = null;
 
-function canScroll(element: HTMLElement, deltaY: number): boolean {
-  if (deltaY > 0) {
-    return element.scrollTop + element.clientHeight < element.scrollHeight - 1;
+function setActive(root: HTMLElement | null): void {
+  if (root === active) {
+    return;
   }
-  return deltaY < 0 && element.scrollTop > 0;
+  active?.classList.remove(ACTIVE_CLASS);
+  active = root;
+  active?.classList.add(ACTIVE_CLASS);
 }
 
-/** True while a scroll that started in this element is still going, so fast scrolls past the end do not zoom the canvas. */
-export function keepWheel(element: HTMLElement, deltaY: number): boolean {
-  const now = performance.now();
-  if (latched === element && now - lastWheelAt < LATCH_MS) {
-    lastWheelAt = now;
-    return true;
+function forwardToCanvas(event: WheelEvent): void {
+  event.preventDefault();
+  event.stopPropagation();
+  const { clientX, clientY, deltaX, deltaY, ctrlKey, metaKey, shiftKey } = event;
+  getApp().canvas?.canvas?.dispatchEvent(
+    new WheelEvent('wheel', { clientX, clientY, deltaX, deltaY, ctrlKey, metaKey, shiftKey }),
+  );
+}
+
+function onPointerDown(event: PointerEvent): void {
+  const target = event.target instanceof Element ? event.target : null;
+  const root = target?.closest<HTMLElement>(ROOT_SELECTOR);
+  if (root) {
+    setActive(root);
+  } else if (!target?.closest('.aala-media')) {
+    // Teleported dialogs and menus carry .aala-media too; clicks there keep the current widget active.
+    setActive(null);
   }
-  if (canScroll(element, deltaY)) {
-    latched = element;
-    lastWheelAt = now;
-    return true;
-  }
-  if (latched === element) {
-    latched = null;
-  }
-  return false;
 }
 
 function onWheel(event: WheelEvent): void {
-  if (event.ctrlKey || event.metaKey || Math.abs(event.deltaX) > Math.abs(event.deltaY)) {
-    return;
-  }
   const target = event.target instanceof Element ? event.target : null;
-  const scroller = target?.closest<HTMLElement>(SELECTOR);
-  if (!scroller || !scroller.closest('.aala-media')) {
+  const root = target?.closest<HTMLElement>(ROOT_SELECTOR);
+  if (!root) {
     return;
   }
-  const active = document.activeElement;
-  const focusedInside = !!active && scroller.contains(active);
-  if (isTextInput(active) && active?.closest('.aala-media')) {
+  if (event.ctrlKey || event.metaKey || root !== active) {
+    forwardToCanvas(event);
     return;
   }
-  if (keepWheel(scroller, event.deltaY)) {
-    if (!focusedInside) {
-      scroller.focus({ preventScroll: true });
-    }
-  } else if (focusedInside && active instanceof HTMLElement) {
-    active.blur();
-  }
+  event.stopPropagation();
 }
 
-export function markWheelScroller(element: HTMLElement): void {
-  element.dataset.captureWheel = 'true';
-  element.tabIndex = -1;
-}
-
-/** Installs the listener for the first widget on the page; the returned function releases it. */
-export function useWheelFocus(): () => void {
+/** Registers a widget root; the first one installs the window listeners, the returned function releases it. */
+export function useWheelFocus(root: HTMLElement): () => void {
+  root.dataset.aalaWheelRoot = '';
   if (users === 0) {
-    window.addEventListener('wheel', onWheel, { capture: true, passive: true });
+    window.addEventListener('pointerdown', onPointerDown, { capture: true });
+    window.addEventListener('wheel', onWheel, { capture: true, passive: false });
   }
   users += 1;
   let released = false;
@@ -76,8 +65,12 @@ export function useWheelFocus(): () => void {
       return;
     }
     released = true;
+    if (active === root) {
+      setActive(null);
+    }
     users -= 1;
     if (users === 0) {
+      window.removeEventListener('pointerdown', onPointerDown, { capture: true });
       window.removeEventListener('wheel', onWheel, { capture: true });
     }
   };
