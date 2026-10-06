@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import type { MediaMeta } from '../../api/fs';
-import { usePointerSort } from '../../composables/usePointerSort';
+import { sortSlot, usePointerSort } from '../../composables/usePointerSort';
 import { isMod } from '../../composables/useKeyboardScope';
 import { useVirtualRows } from '../../composables/useVirtualRows';
 import { en, KIND_LABEL } from '../../i18n/en';
@@ -74,17 +74,24 @@ const listStyle = computed(() => ({
     : {}),
 }));
 
-const sorter = usePointerSort(
-  list,
-  computed(() => (layout.value === 'grid' ? 'x' : 'y')),
-  (id, insertAt) => {
-    const from = items.value.findIndex((item) => item.id === id);
-    const to = insertAt > from ? insertAt - 1 : insertAt;
-    if (from >= 0 && to !== from) {
-      props.store.moveItem(props.kind, id, to);
-    }
-  },
-);
+const sorter = usePointerSort(list, (id, insertAt) => {
+  const from = items.value.findIndex((item) => item.id === id);
+  const to = insertAt > from ? insertAt - 1 : insertAt;
+  if (from >= 0 && to !== from) {
+    props.store.moveItem(props.kind, id, to);
+  }
+});
+
+// While dragging, cards between the origin and the drop slot shift one slot to make room.
+const sorting = computed(() => {
+  const id = sorter.draggingId.value;
+  const from = id === null ? -1 : items.value.findIndex((item) => item.id === id);
+  if (from < 0) {
+    return null;
+  }
+  const drop = sorter.dropIndex.value;
+  return { from, to: drop === null ? from : drop > from ? drop - 1 : drop };
+});
 
 // Drop selection entries whose items are gone (removed, undo, workflow load).
 watch(items, (current) => {
@@ -99,15 +106,18 @@ function notify(tone: GroupNotice['tone'], text: string, confirm?: GroupNotice['
   emit('notify', { tone, text, confirm });
 }
 
-function dropFor(index: number): 'before' | 'after' | null {
-  const drop = sorter.dropIndex.value;
-  if (drop === null || sorter.draggingId.value === null) {
-    return null;
+function shiftStyle(index: number): { transform: string } | undefined {
+  const slot = sorting.value ? sortSlot(index, sorting.value.from, sorting.value.to) : index;
+  if (slot === index) {
+    return undefined;
   }
-  if (drop === index) {
-    return 'before';
-  }
-  return drop === items.value.length && index === items.value.length - 1 ? 'after' : null;
+  const columns = virtual.columns.value;
+  const grid = layout.value === 'grid';
+  const pitchX = columns > 1 ? ((list.value?.clientWidth ?? 0) + GRID_GAP) / columns : 0;
+  const pitchY = grid ? GRID_ROW + GRID_GAP : LIST_ROW + LIST_GAP;
+  const dx = ((slot % columns) - (index % columns)) * pitchX;
+  const dy = (Math.floor(slot / columns) - Math.floor(index / columns)) * pitchY;
+  return { transform: `translate(${dx}px, ${dy}px)` };
 }
 
 function toggleActive(item: Readonly<MediaItem>): void {
@@ -319,11 +329,17 @@ function onLimitChange(event: Event): void {
         ref="scroller"
         class="aala-items-scroll"
       >
-        <div ref="list" class="aala-items" :class="`aala-items--${layout}`" :style="listStyle">
+        <div
+          ref="list"
+          class="aala-items"
+          :class="[`aala-items--${layout}`, { 'aala-items--sorting': sorting }]"
+          :style="listStyle"
+        >
           <ItemCard
             v-for="{ item, index } in visibleItems"
             :key="item.id"
             :data-sort-index="index"
+            :style="shiftStyle(index)"
             :item="item"
             :kind="kind"
             :meta="metaOf(item)"
@@ -333,7 +349,6 @@ function onLimitChange(event: Event): void {
             :skip="item.active && !indexes.has(item.id) ? skipReason(item, isMissing(item)) : null"
             :layout="layout"
             :dragging="sorter.draggingId.value === item.id"
-            :drop="dropFor(index)"
             @toggle-active="toggleActive(item)"
             @toggle-mute="toggleMute(item)"
             @options="openOptions(item, $event)"

@@ -20,6 +20,7 @@
   color: var(--aala-fg);
   font-size: 12px;
   line-height: 1.4;
+  cursor: default;
 }
 
 .aala-media *,
@@ -31,6 +32,11 @@
 .aala-media button {
   font: inherit;
   color: inherit;
+}
+
+.aala-media input:not([type='checkbox'], [type='radio'], [type='range']),
+.aala-media textarea {
+  cursor: text;
 }
 
 .aala-ellipsis {
@@ -307,6 +313,7 @@
 }
 
 .aala-items {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -370,7 +377,26 @@
   border: 1px solid var(--aala-border);
   border-radius: 6px;
   background: var(--aala-panel-2);
+  cursor: grab;
+  user-select: none;
   transition: opacity 0.12s ease;
+}
+
+.aala-items--sorting .aala-card {
+  transition:
+    opacity 0.12s ease,
+    transform 0.15s ease;
+}
+
+.aala-items--sorting,
+.aala-items--sorting * {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aala-items--sorting .aala-card {
+    transition: none;
+  }
 }
 
 .aala-card--off {
@@ -393,45 +419,32 @@
   border-color: var(--aala-missing);
 }
 
-.aala-card--dragging {
-  opacity: 0.35;
+.aala-card.aala-card--dragging {
+  border: 1px dashed color-mix(in srgb, var(--aala-fg) 35%, var(--aala-border));
+  background: transparent;
+  box-shadow: none;
+  opacity: 1;
 }
 
-.aala-card--drop-before::before,
-.aala-card--drop-after::after {
-  content: '';
-  position: absolute;
-  background: var(--aala-accent);
-  border-radius: 2px;
+.aala-card--dragging > * {
+  visibility: hidden;
+}
+
+.aala-media.aala-drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10001;
+  width: auto;
+  height: auto;
+  overflow: visible;
   pointer-events: none;
+  transform-origin: 0 0;
+  opacity: 0.85;
 }
 
-.aala-card--list.aala-card--drop-before::before {
-  left: 0;
-  right: 0;
-  top: -4px;
-  height: 3px;
-}
-
-.aala-card--list.aala-card--drop-after::after {
-  left: 0;
-  right: 0;
-  bottom: -4px;
-  height: 3px;
-}
-
-.aala-card--grid.aala-card--drop-before::before {
-  top: 0;
-  bottom: 0;
-  left: -5px;
-  width: 3px;
-}
-
-.aala-card--grid.aala-card--drop-after::after {
-  top: 0;
-  bottom: 0;
-  right: -5px;
-  width: 3px;
+.aala-drag-ghost .aala-card {
+  box-shadow: 0 6px 18px rgb(0 0 0 / 45%);
 }
 
 .aala-card__handle {

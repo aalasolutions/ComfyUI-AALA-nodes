@@ -25,7 +25,7 @@ class ListSplitter(io.ComfyNode):
                 io.MatchType.Input("items", template=template),
                 io.Int.Input("slots", default=DEFAULT_SLOTS, min=1, max=MAX_SLOTS, step=1),
             ],
-            outputs=[io.MatchType.Output(template, id=f"item_{index + 1}", display_name=str(index + 1)) for index in range(MAX_SLOTS)],
+            outputs=[io.MatchType.Output(template, id=f"item_{index + 1}", display_name=str(index)) for index in range(MAX_SLOTS)],
         )
 
     @classmethod

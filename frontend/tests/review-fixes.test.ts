@@ -64,15 +64,15 @@ describe('output indexes', () => {
   it('skips missing items and muted audio without shifting later items', () => {
     const images = ['/1.png', '/2.png', '/3.png'].map((path) => createItem({ path, kind: 'image' }, true));
     const indexes = outputIndexes(images, (item) => item.path === '/2.png');
-    expect(images.map((item) => indexes.get(item.id))).toEqual([1, undefined, 2]);
+    expect(images.map((item) => indexes.get(item.id))).toEqual([0, undefined, 1]);
 
     const audio = ['/a.wav', '/b.wav'].map((path) => createItem({ path, kind: 'audio' }, true));
     audio[0].muted = true;
     const audioIndexes = outputIndexes(audio);
-    expect(audio.map((item) => audioIndexes.get(item.id))).toEqual([undefined, 1]);
+    expect(audio.map((item) => audioIndexes.get(item.id))).toEqual([undefined, 0]);
 
     const video = createItem({ path: '/v.mp4', kind: 'video' }, true);
     video.muted = true;
-    expect(outputIndexes([video]).get(video.id)).toBe(1);
+    expect(outputIndexes([video]).get(video.id)).toBe(0);
   });
 });

@@ -61,7 +61,7 @@ describe('item limits', () => {
     expect(state.groups.image.map((item) => item.id)).toEqual([c, a, b]);
     items.setActive(state, 'image', new Set([a]), false);
     const indexes = items.outputIndexes(state.groups.image);
-    expect([indexes.get(c), indexes.get(a), indexes.get(b)]).toEqual([1, undefined, 2]);
+    expect([indexes.get(c), indexes.get(a), indexes.get(b)]).toEqual([0, undefined, 1]);
     expect(items.removeItems(state, 'image', new Set([a, b]))).toBe(2);
   });
 

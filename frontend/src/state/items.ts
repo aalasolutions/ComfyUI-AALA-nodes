@@ -175,7 +175,7 @@ export function outputIndexes(
   isMissing: (item: Readonly<MediaItem>) => boolean = () => false,
 ): Map<string, number> {
   const indexes = new Map<string, number>();
-  let next = 1;
+  let next = 0;
   for (const item of items) {
     if (item.active && !skipReason(item, isMissing(item))) {
       indexes.set(item.id, next);

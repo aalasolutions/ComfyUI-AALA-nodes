@@ -18,7 +18,6 @@ const props = defineProps<{
   skip: 'muted' | 'missing' | null;
   layout: 'list' | 'grid';
   dragging: boolean;
-  drop: 'before' | 'after' | null;
 }>();
 const emit = defineEmits<{
   toggleActive: [];
@@ -40,7 +39,7 @@ const name = computed(() => baseName(props.item.path));
 const muted = computed(() => props.item.muted === true);
 // The output position at Run; an active item that Run skips shows why instead.
 const tag = computed(() =>
-  props.outputIndex ? `${OUTPUT_PREFIX[props.kind]} ${props.outputIndex}` : props.item.active && props.skip ? props.skip : 'off',
+  props.outputIndex !== undefined ? `${OUTPUT_PREFIX[props.kind]} ${props.outputIndex}` : props.item.active && props.skip ? props.skip : 'off',
 );
 const info = computed(() => describeMeta(props.kind, props.meta));
 const ratio = computed(() =>
@@ -71,6 +70,13 @@ const editBadges = computed(() => {
   return badges;
 });
 
+// The whole card drags, except from the preview and the card's buttons and inputs.
+function onPointerDown(event: PointerEvent): void {
+  if (!(event.target as Element).closest('button, input, select, textarea, a')) {
+    emit('dragStart', event);
+  }
+}
+
 function onKey(event: KeyboardEvent): void {
   const back = event.key === 'ArrowUp' || (props.layout === 'grid' && event.key === 'ArrowLeft');
   const forward = event.key === 'ArrowDown' || (props.layout === 'grid' && event.key === 'ArrowRight');
@@ -96,23 +102,23 @@ function onKey(event: KeyboardEvent): void {
         'aala-card--selected': selected,
         'aala-card--missing': missing,
         'aala-card--dragging': dragging,
-        [`aala-card--drop-${drop}`]: drop,
       },
     ]"
     :data-sort-id="item.id"
     tabindex="0"
     :aria-label="`${name}, ${item.active ? tag : 'inactive'}`"
     @click="emit('select', $event)"
+    @pointerdown="onPointerDown"
     @contextmenu.prevent.stop="emit('options', $event)"
     @keydown="onKey"
   >
-    <span class="aala-card__handle" title="Drag to reorder (Alt+Up or Alt+Down)" @pointerdown.stop="emit('dragStart', $event)" @click.stop>
+    <span class="aala-card__handle" title="Drag to reorder (Option/Alt+Up or Option/Alt+Down)" @click.stop>
       <Icon name="drag" :size="14" />
     </span>
     <button type="button" class="aala-card__preview" :title="`Preview ${name}`" @click.stop="emit('preview')">
       <Icon v-if="missing" class="aala-card__missing-icon" :name="kind" :size="20" />
       <Thumb v-else :path="item.path" :kind="kind" :mtime="meta?.mtime ?? 0" :size="256" />
-      <span class="aala-tag" :class="{ 'aala-tag--off': !outputIndex }">{{ tag }}</span>
+      <span class="aala-tag" :class="{ 'aala-tag--off': outputIndex === undefined }">{{ tag }}</span>
     </button>
     <div class="aala-card__body">
       <span class="aala-card__name aala-ellipsis" :title="item.path">{{ name }}</span>

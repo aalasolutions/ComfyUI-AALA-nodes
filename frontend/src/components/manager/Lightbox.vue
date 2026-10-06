@@ -24,7 +24,7 @@ const caption = computed(() => {
     return '';
   }
   const position = props.outputIndexes.get(current.id);
-  const tag = position ? `${OUTPUT_PREFIX[props.kind]} ${position}` : current.active ? 'skipped' : 'off';
+  const tag = position !== undefined ? `${OUTPUT_PREFIX[props.kind]} ${position}` : current.active ? 'skipped' : 'off';
   return [tag, baseName(current.path), describeMeta(props.kind, props.metaOf(current))].filter(Boolean).join(' · ');
 });
 
