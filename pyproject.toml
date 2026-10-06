@@ -4,12 +4,20 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "comfyui-aala-nodes"
-version = "0.1.0"
-description = "Aala media utilities and UI nodes for ComfyUI"
+description = "Media Manager and List Splitter nodes for ComfyUI: browse, preview, trim and crop images, video and audio, then output them as lists."
+version = "1.0.0"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
-authors = [{ name = "Aala Media" }]
+license = { file = "LICENSE" }
+authors = [{ name = "AALA IT Solutions" }]
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/aalasolutions/ComfyUI-AALA-nodes"
+
+[tool.comfy]
+PublisherId = "aala"
+DisplayName = "AALA Nodes"
 
 [tool.setuptools]
 packages = ["aala_media", "aala_media.decode", "aala_media.nodes", "aala_media.server"]

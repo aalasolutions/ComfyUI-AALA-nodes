@@ -1,0 +1,5 @@
+# Development-only files
+docs/
+tests/
+frontend/
+.gitignore
