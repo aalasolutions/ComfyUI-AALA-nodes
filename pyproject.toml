@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "comfyui-aala-nodes"
-description = "Media Manager and List Splitter nodes for ComfyUI: browse, preview, trim and crop images, video and audio, then output them as lists."
-version = "1.1.0"
+description = "Simplest Media Manager and other helping nodes for ComfyUI: browse, preview, trim and crop images, video and audio, then output them as lists."
+version = "1.2.0"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
