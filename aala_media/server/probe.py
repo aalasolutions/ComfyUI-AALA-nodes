@@ -8,12 +8,16 @@ import av
 from PIL import Image
 
 from ..kinds import detect_kind
+from .fs import FsError, file_for_streaming
+
+MISSING_CODES = ("bad_request", "not_found", "not_a_file")
 
 
 def probe(raw_path: str) -> dict[str, Any]:
-    path = os.path.expanduser(raw_path) if isinstance(raw_path, str) else ""
-    if not os.path.isabs(path) or not os.path.isfile(path):
-        return {"missing": True}
+    try:
+        path = file_for_streaming(raw_path)
+    except FsError as error:
+        return {"missing": True} if error.code in MISSING_CODES else {"error": error.code}
 
     try:
         stat = os.stat(path)

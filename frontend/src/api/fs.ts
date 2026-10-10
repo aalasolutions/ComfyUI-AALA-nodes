@@ -107,8 +107,8 @@ export function getPlaces(): Promise<Places> {
   return placesPromise;
 }
 
-export function listFolder(path: string, options: { hidden?: boolean; signal?: AbortSignal } = {}): Promise<ListPage> {
-  const query = new URLSearchParams({ path, hidden: options.hidden ? '1' : '0' });
+export function listFolder(path: string, options: { signal?: AbortSignal } = {}): Promise<ListPage> {
+  const query = new URLSearchParams({ path });
   return request<ListPage>(`/list?${query}`, { signal: options.signal });
 }
 

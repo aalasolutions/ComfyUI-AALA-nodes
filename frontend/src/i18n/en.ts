@@ -34,6 +34,7 @@ export const en = {
     permission_denied:
       'Permission denied. On macOS, grant the app running ComfyUI access in System Settings, Privacy & Security, Files and Folders (or Full Disk Access).',
     not_a_directory: 'This path is not a folder.',
+    hidden: 'Hidden folders cannot be opened.',
     bad_request: 'The request was not valid.',
     io_error: 'The folder could not be read.',
     network: 'Could not reach the ComfyUI server.',

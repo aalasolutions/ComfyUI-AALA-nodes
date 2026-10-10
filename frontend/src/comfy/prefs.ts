@@ -11,7 +11,6 @@ export interface BrowserPrefs {
   view: 'grid' | 'list';
   sort: { key: SortKey; dir: 'asc' | 'desc' };
   thumbSize: ThumbSize;
-  showHidden: boolean;
   dialogSize: { w: number; h: number } | null;
 }
 
@@ -21,7 +20,6 @@ const DEFAULTS: BrowserPrefs = {
   view: 'grid',
   sort: { key: 'name', dir: 'asc' },
   thumbSize: 'm',
-  showHidden: false,
   dialogSize: null,
 };
 
@@ -31,7 +29,6 @@ const IDS: Record<keyof BrowserPrefs, string> = {
   view: 'AalaMedia.Browser.View',
   sort: 'AalaMedia.Browser.Sort',
   thumbSize: 'AalaMedia.Browser.ThumbSize',
-  showHidden: 'AalaMedia.Browser.ShowHidden',
   dialogSize: 'AalaMedia.Browser.DialogSize',
 };
 

@@ -42,9 +42,10 @@ class ListDirectoryTests(unittest.TestCase):
         self.assertEqual(result["skipped"], 2)
         self.assertNotIn("Final Cut.fcpbundle", self.names())
 
-    def test_hidden_toggle(self):
-        self.assertIn(".hidden.png", self.names(hidden=True))
-        self.assertIn(".secret", self.names(hidden=True))
+    def test_hidden_entries_never_listed(self):
+        self.assertNotIn(".hidden.png", self.names())
+        self.assertNotIn(".secret", self.names())
+        self.assertFsError("hidden", 403, str(self.root / ".secret"))
 
     def test_kind_filter_keeps_folders(self):
         self.assertEqual(self.names(kinds={"audio"}), ["sub", "song.wav"])
@@ -86,13 +87,32 @@ class ListDirectoryTests(unittest.TestCase):
 class FileForStreamingTests(unittest.TestCase):
     def test_validation(self):
         with tempfile.TemporaryDirectory() as tmp:
-            target = Path(tmp) / "a.png"
+            root = Path(tmp)
+            target = root / "a.png"
             _touch(target)
+            (root / "folder.png").mkdir()
+            (root / ".cache").mkdir()
+            for name in ("notes.txt", ".a.png", ".cache/b.png"):
+                _touch(root / name)
+            (root / "link.png").symlink_to(root / "notes.txt")
+            (root / "cachelink").symlink_to(root / ".cache")
             self.assertEqual(file_for_streaming(str(target)), str(target))
-            for raw, code in ((str(Path(tmp) / "none.png"), "not_found"), (tmp, "not_a_file"), ("a.png", "bad_request")):
+            self.assertEqual(file_for_streaming(str(root / ".cache" / ".." / "a.png")), str(target))
+            cases = (
+                (str(root / "none.png"), "not_found"),
+                (str(root / "folder.png"), "not_a_file"),
+                ("a.png", "bad_request"),
+                (tmp, "not_media"),
+                (str(root / "notes.txt"), "not_media"),
+                (str(root / ".a.png"), "hidden"),
+                (str(root / ".cache" / "b.png"), "hidden"),
+                (str(root / "link.png"), "not_media"),
+                (str(root / "cachelink" / "b.png"), "hidden"),
+            )
+            for raw, code in cases:
                 with self.assertRaises(FsError) as caught:
                     file_for_streaming(raw)
-                self.assertEqual(caught.exception.code, code)
+                self.assertEqual(caught.exception.code, code, raw)
 
 
 class PlacesTests(unittest.TestCase):

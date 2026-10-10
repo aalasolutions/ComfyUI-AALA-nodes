@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ..kinds import AUDIO_EXTENSIONS, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, detect_kind
+from ..kinds import AUDIO_EXTENSIONS, IMAGE_EXTENSIONS, VIDEO_EXTENSIONS, detect_kind, is_media_path
 
 USER_FOLDERS = ("Desktop", "Documents", "Downloads", "Movies", "Music", "Pictures")
 PACKAGE_SUFFIXES = (".app", ".bundle", ".framework", ".photoslibrary", ".fcpbundle", ".imovielibrary", ".pkg")
@@ -30,6 +30,17 @@ def resolve_path(raw: str | None) -> str:
     if not os.path.isabs(path):
         raise FsError("bad_request", "Path must be absolute", 400)
     return os.path.normpath(path)
+
+
+def _is_hidden(path: str) -> bool:
+    return any(part.startswith(".") for part in Path(path).parts)
+
+
+def visible_path(raw: str | None) -> str:
+    path = resolve_path(raw)
+    if _is_hidden(path) or _is_hidden(os.path.realpath(path)):
+        raise FsError("hidden", f"Hidden paths are not allowed: {path}", 403)
+    return path
 
 
 def places(comfy_dirs: dict[str, str]) -> dict[str, Any]:
@@ -57,9 +68,8 @@ def places(comfy_dirs: dict[str, str]) -> dict[str, Any]:
 def list_directory(
     raw_path: str | None,
     kinds: set[str] | None = None,
-    hidden: bool = False,
 ) -> dict[str, Any]:
-    path = resolve_path(raw_path)
+    path = visible_path(raw_path)
     wanted = kinds or {"image", "video", "audio"}
 
     try:
@@ -82,7 +92,7 @@ def list_directory(
     entries: list[dict[str, Any]] = []
     skipped = 0
     for entry in raw_entries:
-        if not hidden and entry.name.startswith("."):
+        if entry.name.startswith("."):
             continue
         item = _entry_payload(entry, wanted)
         if item is None:
@@ -103,7 +113,9 @@ def list_directory(
 
 
 def file_for_streaming(raw_path: str | None) -> str:
-    path = resolve_path(raw_path)
+    path = visible_path(raw_path)
+    if not is_media_path(path) or not is_media_path(os.path.realpath(path)):
+        raise FsError("not_media", f"Not an image, video or audio file: {path}", 403)
     if not os.path.exists(path):
         raise FsError("not_found", f"File not found: {path}", 404)
     if not os.path.isfile(path):

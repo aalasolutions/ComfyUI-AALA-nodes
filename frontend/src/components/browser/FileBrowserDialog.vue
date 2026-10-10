@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, shallowRef, toRef } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref, shallowRef } from 'vue';
 import { baseName, getPlaces, listFolder, parentPath, type Entry, type FileEntry, type Places } from '../../api/fs';
 import { filesOf, filterEntries, sortEntries, type KindFilter } from '../../browser/listing';
 import type { BrowserRequest } from '../../browser/request';
@@ -31,12 +31,11 @@ const prefs = reactive({
   view: getPref('view'),
   sort: getPref('sort'),
   thumbSize: getPref('thumbSize'),
-  showHidden: getPref('showHidden'),
 });
 const dialogSize = getPref('dialogSize');
 
 const places = ref<Places | null>(null);
-const listing = useFolderListing(toRef(prefs, 'showHidden'));
+const listing = useFolderListing();
 const history = ref<string[]>([]);
 const historyIndex = ref(-1);
 const query = ref('');
@@ -182,12 +181,6 @@ function sortByHeader(key: SortKey): void {
   setSort(key, prefs.sort.key === key && prefs.sort.dir === 'asc' ? 'desc' : 'asc');
 }
 
-function toggleHidden(): void {
-  prefs.showHidden = !prefs.showHidden;
-  setPref('showHidden', prefs.showHidden);
-  void listing.load(listing.state.path);
-}
-
 function openSortMenu(event: MouseEvent): void {
   const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
   const mark = (on: boolean) => (on ? '✓ ' : ' ');
@@ -298,7 +291,7 @@ function cancelFolderTask(): void {
 async function addFolder(path: string): Promise<void> {
   cancelFolderTask();
   try {
-    const files = filesOf((await listFolder(path, { hidden: prefs.showHidden })).entries).filter(accepts);
+    const files = filesOf((await listFolder(path)).entries).filter(accepts);
     if (files.length === 0) {
       notice.value = { tone: 'info', text: en.noMedia };
     } else {
@@ -316,7 +309,6 @@ async function addRecursive(path: string): Promise<void> {
   notice.value = { tone: 'info', text: en.recursiveCounting(0) };
   try {
     const files = await collectRecursive(path, {
-      hidden: prefs.showHidden,
       accept: accepts,
       signal: task.signal,
       onProgress: (count) => {
@@ -607,17 +599,6 @@ onMounted(async () => {
                 {{ size.toUpperCase() }}
               </button>
             </div>
-            <button
-              type="button"
-              class="aala-icon-btn"
-              :class="{ 'aala-icon-btn--on': prefs.showHidden }"
-              :aria-pressed="prefs.showHidden"
-              title="Show hidden files"
-              aria-label="Show hidden files"
-              @click="toggleHidden"
-            >
-              <Icon name="eye" />
-            </button>
           </div>
         </header>
 

@@ -47,6 +47,9 @@ class ProbeTests(unittest.TestCase):
         broken = self.root / "broken.mp4"
         broken.write_bytes(b"not a video")
         self.assertIn("unreadable", probe(str(broken))["error"])
+        text = self.root / "notes.txt"
+        text.write_text("x")
+        self.assertEqual(probe(str(text)), {"error": "not_media"})
 
     def test_probe_many_dedupes(self):
         image = str(make_image(self.root / "a.png"))

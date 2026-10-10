@@ -74,7 +74,6 @@ def create_routes(comfy_dirs: Callable[[], dict[str, str]], cache: MediaCache) -
                 list_directory,
                 query.get("path"),
                 kinds=_parse_kinds(query.get("kinds")),
-                hidden=query.get("hidden") in ("1", "true"),
             )
         except FsError as error:
             return _error_response(error)

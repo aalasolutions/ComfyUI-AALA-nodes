@@ -66,6 +66,10 @@ class RoutesTests(AioHTTPTestCase):
         self.assertEqual(await response.read(), data[:10])
         response = await self.client.get("/aala-media/fs/file", params={"path": str(self.root / "none.png")})
         self.assertEqual(response.status, 404)
+        secret = self.root / "secret.txt"
+        secret.write_text("x")
+        response = await self.client.get("/aala-media/fs/file", params={"path": str(secret)})
+        self.assertEqual((response.status, (await response.json())["error"]), (403, "not_media"))
 
     async def test_thumb_frame_peaks_endpoints(self):
         video = make_video(self.root / "clip.mp4")

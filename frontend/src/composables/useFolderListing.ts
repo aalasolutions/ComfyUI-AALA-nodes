@@ -1,4 +1,4 @@
-import { reactive, shallowRef, type Ref } from 'vue';
+import { reactive, shallowRef } from 'vue';
 import { FsRequestError, listFolder, type Entry, type FileEntry, type ListPage } from '../api/fs';
 
 // Guards against symlink cycles, whose paths grow without repeating.
@@ -6,19 +6,15 @@ const MAX_DEPTH = 32;
 
 export type LoadResult = 'ok' | 'error' | 'cancelled';
 
-// Listings per folder and hidden flag, shared by all dialogs on the page.
+// Listings per folder, shared by all dialogs on the page.
 const cache = new Map<string, ListPage>();
-
-function cacheKey(path: string, hidden: boolean): string {
-  return `${hidden ? 1 : 0}|${path}`;
-}
 
 function toFsError(error: unknown): FsRequestError {
   return error instanceof FsRequestError ? error : new FsRequestError('io_error', String(error), 500);
 }
 
 /** Folder listing with a client cache (refreshed in the background), cancellation and inline errors. */
-export function useFolderListing(showHidden: Ref<boolean>) {
+export function useFolderListing() {
   const state = reactive({
     path: '',
     parent: null as string | null,
@@ -49,8 +45,7 @@ export function useFolderListing(showHidden: Ref<boolean>) {
     const ticket = ++generation;
     const local = new AbortController();
     controller = local;
-    const hidden = showHidden.value;
-    const cached = options.force ? undefined : cache.get(cacheKey(path, hidden));
+    const cached = options.force ? undefined : cache.get(path);
     // With keepOnError the cached listing is not shown up front, so the fresh page must always be applied.
     const shown = cached && !options.keepOnError ? cached : undefined;
     if (shown) {
@@ -60,7 +55,7 @@ export function useFolderListing(showHidden: Ref<boolean>) {
 
     let page: ListPage;
     try {
-      page = await listFolder(path, { hidden, signal: local.signal });
+      page = await listFolder(path, { signal: local.signal });
     } catch (error) {
       if (ticket !== generation || (error as Error).name === 'AbortError') {
         return 'cancelled';
@@ -70,7 +65,7 @@ export function useFolderListing(showHidden: Ref<boolean>) {
       if (options.keepOnError) {
         throw failure;
       }
-      cache.delete(cacheKey(path, hidden));
+      cache.delete(path);
       state.path = path;
       state.parent = null;
       state.error = failure;
@@ -81,7 +76,7 @@ export function useFolderListing(showHidden: Ref<boolean>) {
       return 'cancelled';
     }
     state.loading = false;
-    cache.set(cacheKey(page.path, hidden), page);
+    cache.set(page.path, page);
     if (!shown || shown.mtime !== page.mtime || shown.path !== page.path) {
       apply(page);
     }
@@ -94,7 +89,7 @@ export function useFolderListing(showHidden: Ref<boolean>) {
 /** Collects media files under `path`, breadth first. `onProgress` receives the running count. */
 export async function collectRecursive(
   path: string,
-  options: { hidden: boolean; accept: (file: FileEntry) => boolean; signal: AbortSignal; onProgress: (count: number) => void },
+  options: { accept: (file: FileEntry) => boolean; signal: AbortSignal; onProgress: (count: number) => void },
 ): Promise<FileEntry[]> {
   const files: FileEntry[] = [];
   const queue: [string, number][] = [[path, 0]];
@@ -102,7 +97,7 @@ export async function collectRecursive(
     const [folder, depth] = queue.shift() as [string, number];
     let entries: Entry[];
     try {
-      entries = (await listFolder(folder, { hidden: options.hidden, signal: options.signal })).entries;
+      entries = (await listFolder(folder, { signal: options.signal })).entries;
     } catch (error) {
       if ((error as Error).name === 'AbortError') {
         throw error;
