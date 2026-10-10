@@ -29,6 +29,12 @@ const PATHS: Record<string, string> = {
   home: 'M3 11l9-7 9 7 M5 10v10h14V10',
   drive: 'M3 14h18v5H3z M5 14l2-8h10l2 8 M17 16.5h.01',
   clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z M12 7v5l3 2',
+  'rotate-cw': 'M20 12a8 8 0 1 1-2.3-5.7 M20 4v4h-4',
+  'rotate-ccw': 'M4 12a8 8 0 1 0 2.3-5.7 M4 4v4h4',
+  mirror: 'M12 3v18 M8 7L3 12l5 5z M16 7l5 5-5 5z',
+  play: 'M7 5v14l12-7z',
+  pause: 'M8 5v14 M16 5v14',
+  crop: 'M6 2v14a2 2 0 0 0 2 2h14 M2 6h14a2 2 0 0 1 2 2v14',
 };
 </script>
 

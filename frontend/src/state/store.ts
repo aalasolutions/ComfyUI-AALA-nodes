@@ -74,6 +74,8 @@ export function createMediaStore(onCommit: () => void) {
     duplicateItem: (kind: MediaKind, id: string) => commit((state) => items.duplicateItem(state, kind, id)),
     replacePath: (kind: MediaKind, id: string, path: string, meta: MediaMeta | null) =>
       commit((state) => items.replacePath(state, kind, id, path, meta)),
+    setEdit: (kind: MediaKind, id: string, edit: Record<string, unknown>) =>
+      commit((state) => items.setEdit(state, kind, id, edit)),
     setCollapsed: (kind: MediaKind, collapsed: boolean) =>
       commit((state) => {
         state.ui.collapsed = { ...state.ui.collapsed, [kind]: collapsed };

@@ -142,6 +142,15 @@ export function replacePath(state: MediaState, kind: MediaKind, id: string, path
   return true;
 }
 
+export function setEdit(state: MediaState, kind: MediaKind, id: string, edit: Record<string, unknown>): boolean {
+  const item = state.groups[kind].find((entry) => entry.id === id);
+  if (!item) {
+    return false;
+  }
+  item.edit = edit;
+  return true;
+}
+
 /** Applies a new limit; active items beyond it are deactivated from the bottom. Returns how many. */
 export function applyLimit(state: MediaState, kind: MediaKind, limit: number): number {
   state.limits[kind] = limit;

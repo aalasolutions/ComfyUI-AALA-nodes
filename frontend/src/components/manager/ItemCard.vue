@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { baseName, type MediaMeta } from '../../api/fs';
 import { describeMeta, formatDuration, ratioLabel } from '../../browser/listing';
 import { en } from '../../i18n/en';
+import { trimRange, type Rect } from '../../state/edit';
 import { OUTPUT_PREFIX } from '../../state/items';
 import type { MediaItem, MediaKind } from '../../state/schema';
 import Icon from '../ui/Icon.vue';
@@ -31,20 +32,32 @@ const emit = defineEmits<{
 }>();
 
 interface EditInfo {
-  crop?: unknown;
+  crop?: Rect | null;
+  rotate?: number;
+  mirror?: boolean;
   trim?: { start_frame?: number; end_frame?: number; start?: number; end?: number } | null;
 }
 
 const name = computed(() => baseName(props.item.path));
+const edit = computed(() => (props.item.edit ?? {}) as EditInfo);
+const kept = computed(() => (props.kind === 'image' ? null : trimRange(props.item, props.meta)));
 const muted = computed(() => props.item.muted === true);
 // The output position at Run; an active item that Run skips shows why instead.
 const tag = computed(() =>
   props.outputIndex !== undefined ? `${OUTPUT_PREFIX[props.kind]} ${props.outputIndex}` : props.item.active && props.skip ? props.skip : 'off',
 );
 const info = computed(() => describeMeta(props.kind, props.meta));
-const ratio = computed(() =>
-  props.kind !== 'audio' && props.meta?.width && props.meta.height ? ratioLabel(props.meta.width, props.meta.height) : '',
-);
+const ratio = computed(() => {
+  const { width, height } = props.meta ?? {};
+  if (props.kind === 'audio' || !width || !height) {
+    return '';
+  }
+  const turned = (edit.value.rotate ?? 0) % 180 !== 0;
+  const crop = edit.value.crop;
+  const w = (turned ? height : width) * (crop?.w ?? 1);
+  const h = (turned ? width : height) * (crop?.h ?? 1);
+  return ratioLabel(Math.max(1, Math.round(w)), Math.max(1, Math.round(h)));
+});
 
 // Edit badges for state written by later editor phases (crop, trim, split parts).
 const editBadges = computed(() => {
@@ -117,7 +130,20 @@ function onKey(event: KeyboardEvent): void {
     </span>
     <button type="button" class="aala-card__preview" :title="`Preview ${name}`" @click.stop="emit('preview')">
       <Icon v-if="missing" class="aala-card__missing-icon" :name="kind" :size="20" />
-      <Thumb v-else :path="item.path" :kind="kind" :mtime="meta?.mtime ?? 0" :size="256" />
+      <Thumb
+        v-else
+        :path="item.path"
+        :kind="kind"
+        :mtime="meta?.mtime ?? 0"
+        :size="256"
+        :crop="edit.crop"
+        :rotate="edit.rotate"
+        :mirror="edit.mirror"
+        :range="kept"
+      />
+      <span v-if="kind === 'video' && kept" class="aala-card__trim" aria-hidden="true">
+        <span :style="{ left: `${kept[0] * 100}%`, width: `${(kept[1] - kept[0]) * 100}%` }" />
+      </span>
       <span class="aala-tag" :class="{ 'aala-tag--off': outputIndex === undefined }">{{ tag }}</span>
     </button>
     <div class="aala-card__body">

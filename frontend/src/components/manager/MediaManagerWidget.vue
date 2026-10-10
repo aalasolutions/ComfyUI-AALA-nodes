@@ -244,6 +244,7 @@ const lightboxItems = computed(() => (lightbox.value ? state.value.groups[lightb
       :meta-of="metaOf"
       @close="lightbox = null"
       @step="lightbox = { kind: lightbox!.kind, index: $event }"
+      @apply="(id, edit) => store.setEdit(lightbox!.kind, id, edit)"
     />
   </div>
 </template>

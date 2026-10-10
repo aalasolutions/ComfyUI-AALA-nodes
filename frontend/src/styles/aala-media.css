@@ -623,6 +623,42 @@
   fill: color-mix(in srgb, var(--aala-accent) 75%, var(--aala-fg));
 }
 
+.aala-thumb__media--hidden {
+  visibility: hidden;
+}
+
+.aala-thumb__dim {
+  fill: rgb(0 0 0 / 55%);
+}
+
+.aala-thumb__crop {
+  fill: none;
+  stroke: var(--aala-accent);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.aala-thumb__bar--cut {
+  opacity: 0.25;
+}
+
+.aala-card__trim {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgb(0 0 0 / 55%);
+  pointer-events: none;
+}
+
+.aala-card__trim > span {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--aala-accent);
+}
+
 .aala-thumb__badge {
   position: absolute;
   right: 2px;
@@ -1183,29 +1219,7 @@ span.aala-row__head {
 /* Lightbox */
 
 .aala-lightbox {
-  background: rgb(0 0 0 / 82%) !important;
-}
-
-.aala-lightbox__figure {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  max-width: 86vw;
-}
-
-.aala-lightbox__figure img,
-.aala-lightbox__figure video {
-  display: block;
-  max-width: 86vw;
-  max-height: 80vh;
-  object-fit: contain;
-  border-radius: 6px;
-}
-
-.aala-lightbox__figure audio {
-  width: min(520px, 80vw);
+  background: rgb(0 0 0 / 92%) !important;
 }
 
 .aala-lightbox__caption {
@@ -1217,25 +1231,272 @@ span.aala-row__head {
   color: #ddd !important;
 }
 
-.aala-lightbox__close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
+.aala-lightbox .aala-icon-btn--on {
+  color: #fff !important;
+  background: color-mix(in srgb, var(--aala-accent) 55%, transparent);
 }
 
-.aala-lightbox__nav {
-  position: absolute;
-  top: 50%;
+/* Editor (opened from a card preview) */
+
+.aala-media.aala-editor {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  gap: 10px;
+  padding: 12px 16px 16px;
+  color: #ddd;
+}
+
+.aala-editor__head,
+.aala-editor__tools,
+.aala-editor__timeline,
+.aala-editor__foot {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.aala-editor__tools,
+.aala-editor__timeline,
+.aala-editor__foot {
+  justify-content: center;
+}
+
+.aala-editor__main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-height: 0;
+}
+
+.aala-editor__stage {
+  flex: 1;
+  align-self: stretch;
+  min-width: 0;
+  min-height: 0;
+}
+
+.aala-editor__nav {
   height: 48px;
-  transform: translateY(-50%);
 }
 
-.aala-lightbox__nav--prev {
-  left: 16px;
+.aala-editor__audio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #888;
 }
 
-.aala-lightbox__nav--next {
-  right: 16px;
+.aala-editor__timeline {
+  width: min(900px, 100%);
+  margin: 0 auto;
+}
+
+.aala-editor__timeline .aala-trim {
+  flex: 1;
+}
+
+.aala-editor__size,
+.aala-editor__note,
+.aala-editor__hint {
+  color: #aaa;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.aala-editor__size {
+  min-width: 150px;
+}
+
+.aala-editor .aala-segmented {
+  border-color: #555;
+}
+
+.aala-editor .aala-btn {
+  color: #ddd !important;
+  border-color: #555;
+  background: #2a2a2a;
+}
+
+.aala-editor .aala-btn--primary {
+  color: #fff !important;
+  border-color: var(--aala-accent);
+  background: var(--aala-accent);
+}
+
+/* Crop stage */
+
+.aala-crop {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.aala-crop__box {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.aala-crop__media {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+}
+
+.aala-crop__media > img,
+.aala-crop__media > video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+}
+
+.aala-crop__rect {
+  position: absolute;
+  outline: 1px solid var(--aala-accent);
+  box-shadow: 0 0 0 9999px rgb(0 0 0 / 55%);
+  cursor: move;
+}
+
+.aala-crop__thirds {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(to right, transparent calc(33.33% - 0.5px), rgb(255 255 255 / 45%) 0 calc(33.33% + 0.5px), transparent 0 calc(66.66% - 0.5px), rgb(255 255 255 / 45%) 0 calc(66.66% + 0.5px), transparent 0),
+    linear-gradient(to bottom, transparent calc(33.33% - 0.5px), rgb(255 255 255 / 45%) 0 calc(33.33% + 0.5px), transparent 0 calc(66.66% - 0.5px), rgb(255 255 255 / 45%) 0 calc(66.66% + 0.5px), transparent 0);
+}
+
+.aala-crop__rect--dragging .aala-crop__thirds {
+  opacity: 1;
+}
+
+.aala-crop__handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border: 1px solid #fff;
+  border-radius: 2px;
+  background: var(--aala-accent);
+}
+
+.aala-crop__handle--nw { left: 0; top: 0; cursor: nwse-resize; }
+.aala-crop__handle--ne { left: 100%; top: 0; cursor: nesw-resize; }
+.aala-crop__handle--sw { left: 0; top: 100%; cursor: nesw-resize; }
+.aala-crop__handle--se { left: 100%; top: 100%; cursor: nwse-resize; }
+.aala-crop__handle--n { left: 50%; top: 0; cursor: ns-resize; }
+.aala-crop__handle--s { left: 50%; top: 100%; cursor: ns-resize; }
+.aala-crop__handle--w { left: 0; top: 50%; cursor: ew-resize; }
+.aala-crop__handle--e { left: 100%; top: 50%; cursor: ew-resize; }
+
+/* Trim bar */
+
+.aala-trim {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+}
+
+.aala-trim__lead {
+  display: flex;
+}
+
+.aala-trim__times {
+  grid-column: 2;
+}
+
+.aala-trim__track {
+  position: relative;
+  height: 28px;
+  border-radius: 4px;
+  background: #333;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.aala-trim__track--wave {
+  height: 64px;
+}
+
+.aala-trim__wave {
+  position: absolute;
+  inset: 4px 0;
+  width: 100%;
+  height: calc(100% - 8px);
+  fill: color-mix(in srgb, var(--aala-accent) 75%, #ddd);
+  pointer-events: none;
+}
+
+.aala-trim__bar--cut {
+  opacity: 0.25;
+}
+
+.aala-trim__cut {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgb(0 0 0 / 45%);
+  pointer-events: none;
+}
+
+.aala-trim__kept {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-top: 2px solid var(--aala-accent);
+  border-bottom: 2px solid var(--aala-accent);
+  pointer-events: none;
+}
+
+.aala-trim__playhead {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: #fff;
+  pointer-events: none;
+}
+
+.aala-trim__handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  padding: 0;
+  border: none;
+  background: var(--aala-accent);
+  cursor: ew-resize;
+}
+
+.aala-trim__handle--start {
+  margin-left: -10px;
+  border-radius: 4px 0 0 4px;
+}
+
+.aala-trim__handle--end {
+  border-radius: 0 4px 4px 0;
+}
+
+.aala-trim__times {
+  display: flex;
+  justify-content: space-between;
+  color: #aaa;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 .aala-card__missing-icon {
