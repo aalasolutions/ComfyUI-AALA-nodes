@@ -17,7 +17,7 @@ class ListSplitter(io.ComfyNode):
         template = io.MatchType.Template("items")
         return io.Schema(
             node_id="AalaListSplitter",
-            display_name="List Splitter",
+            display_name="AALA List Splitter",
             category="AALA Nodes/utils",
             description="Splits a list into one output per item. Linked to a Media Manager output, the slot count follows that group's Max.",
             is_input_list=True,

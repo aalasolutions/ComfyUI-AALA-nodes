@@ -9,6 +9,7 @@ from server import PromptServer
 
 from .aala_media.nodes.list_splitter import ListSplitter
 from .aala_media.nodes.media_manager import MediaManager
+from .aala_media.nodes.video_components import GetVideoComponents
 from .aala_media.server.routes import create_routes
 from .aala_media.server.thumbs import MediaCache
 
@@ -32,7 +33,7 @@ class AalaMediaExtension(ComfyExtension):
         asyncio.get_running_loop().run_in_executor(None, cache.evict)
 
     async def get_node_list(self) -> list[type[io.ComfyNode]]:
-        return [MediaManager, ListSplitter]
+        return [MediaManager, ListSplitter, GetVideoComponents]
 
 
 async def comfy_entrypoint() -> AalaMediaExtension:

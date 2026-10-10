@@ -30,7 +30,7 @@ class MediaManager(io.ComfyNode):
     def define_schema(cls) -> io.Schema:
         return io.Schema(
             node_id="AalaMediaManager",
-            display_name="Media Manager",
+            display_name="AALA Media Manager",
             category="AALA Nodes/media",
             inputs=[MediaState.Input("media_state")],
             outputs=[

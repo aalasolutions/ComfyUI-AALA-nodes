@@ -189,7 +189,7 @@ export function syncSplitter(node: GraphNode): void {
     const slots = Math.max(1, Math.min(limit, MAX_SLOTS));
     widget.value = slots;
     widget.disabled = true;
-    const managerName = source.node.title || 'Media Manager';
+    const managerName = source.node.title || 'AALA Media Manager';
     widget.tooltip =
       `Follows Max of ${KIND_LABELS[source.kind]} on "${managerName}"` + (limit > MAX_SLOTS ? ` (capped at ${MAX_SLOTS})` : '');
   } else {

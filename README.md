@@ -6,7 +6,7 @@ AALA node pack for ComfyUI. Nodes appear under **AALA Nodes** in the Add Node me
 
 The nodes we built for us.
 
-### Media Manager
+### AALA Media Manager
 
 `AALA Nodes/media`
 
@@ -22,12 +22,19 @@ The nodes we built for us.
 
 The browser can read any file the ComfyUI process can read. This is intended; keep ComfyUI off shared networks unless that is acceptable.
 
-### List Splitter
+### AALA List Splitter
 
 `AALA Nodes/utils`
 
 - Turns any list into one output per item, labelled by type (`image 0`, `image 1`, ...). Slots with no item output `None`.
 - Linked to a Media Manager output, the number of outputs follows that group's max active limit. Linked to any other list, the count is set on the node.
+
+### AALA Get Video Components
+
+`AALA Nodes/media`
+
+- Same outputs as core Get Video Components: images, audio, fps, bit depth, color space.
+- An empty input, such as an unused List Splitter slot, never fails the run. **If empty** chooses what happens: `pass None` (default, for optional model inputs) or `skip downstream` (nodes using the outputs, such as Preview or Save, are skipped silently).
 
 ## Install
 
