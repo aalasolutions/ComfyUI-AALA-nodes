@@ -48,6 +48,10 @@ function detach(handler: KeyHandler): void {
   }
 }
 
+export function hasKeyboardScope(): boolean {
+  return scopes.length > 0;
+}
+
 export function useKeyboardScope(active: Ref<boolean>, handler: KeyHandler): void {
   let attached = false;
   const sync = (on: boolean) => {

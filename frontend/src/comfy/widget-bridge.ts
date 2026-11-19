@@ -3,6 +3,7 @@ import MediaManagerWidget from '../components/manager/MediaManagerWidget.vue';
 import { createMediaStore } from '../state/store';
 import { emitMediaStateChanged } from '../splitter/events';
 import { recordGraphChange, type ComfyNode, type CustomWidgetResult } from './host';
+import { isPasteTarget } from './paste';
 import { useWheelFocus } from './wheel-focus';
 
 const WIDGET_MIN_HEIGHT = 220;
@@ -70,7 +71,11 @@ export function createMediaStateWidget(node: ComfyNode, inputName: string): Cust
     runtime.runs += 1;
   };
 
-  const vueApp = createApp(MediaManagerWidget, { store, runtime });
+  const vueApp = createApp(MediaManagerWidget, {
+    store,
+    runtime,
+    isPasteTarget: (event: Event) => isPasteTarget(node, element, event),
+  });
   vueApp.mount(element);
 
   const live: LiveWidget = { node, element };

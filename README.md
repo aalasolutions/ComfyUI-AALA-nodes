@@ -14,6 +14,7 @@ The nodes we built for us.
 
 - Collects images, videos and audio from any folder on the machine running ComfyUI. The file browser opens at ComfyUI's input folder and offers places, a path bar, grid and list views, sort, search, kind filters and multi-select across folders.
 - Files are referenced in place by path; nothing is copied into `input/`.
+- Images can also be pasted: with the node selected or the widget focused, Cmd+V (Ctrl+V) uploads every image on the clipboard to `input/pasted/`, as core Load Image paste does, and adds it to Images. The Images menu has **Paste from clipboard** too.
 - Three groups (Images, Videos, Audio), each with its own order, a max active limit and a scrolling list. Items can be switched off, muted, reordered, previewed and relinked when missing.
 - Outputs `IMAGES`, `VIDEOS` and `AUDIO` as lists of the active items, in group order. Missing or unreadable files are skipped and flagged in the node.
 - Works in canvas mode and Vue Nodes mode; state is saved with the workflow and supports undo, redo and copy-paste. Notices are shown inline in the node.

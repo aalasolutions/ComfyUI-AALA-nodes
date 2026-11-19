@@ -31,6 +31,7 @@ const emit = defineEmits<{
   relink: [item: Readonly<MediaItem>];
   preview: [index: number];
   notify: [notice: GroupNotice | null];
+  paste: [];
 }>();
 
 const state = computed(() => props.store.data.state as Readonly<MediaState>);
@@ -265,6 +266,7 @@ function openGroupMenu(event: MouseEvent): void {
     x: rect.left,
     y: rect.bottom + 2,
     items: [
+      ...(props.kind === 'image' ? [{ label: 'Paste from clipboard', action: () => emit('paste') }] : []),
       { label: 'Select all', action: () => (selected.value = new Set(items.value.map((item) => item.id))), disabled: items.value.length === 0 },
       { label: 'Remove all…', action: confirmRemoveAll, disabled: items.value.length === 0, danger: true },
     ],

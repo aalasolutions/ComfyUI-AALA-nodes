@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowReactive, watch } from 'vue';
-import { isMeta, nearestExistingFolder, parentPath, probePaths, type FileEntry, type MediaMeta, type ProbeResult } from '../../api/fs';
+import { getPlaces, isMeta, nearestExistingFolder, parentPath, probePaths, type FileEntry, type MediaMeta, type Places, type ProbeResult } from '../../api/fs';
 import type { BrowserRequest } from '../../browser/request';
 import { en } from '../../i18n/en';
 import { distributePanes, paneSizesFrom, resizePanes, type Pane } from '../../state/panes';
@@ -13,8 +13,9 @@ import Lightbox from './Lightbox.vue';
 import MediaGroup, { type GroupNotice } from './MediaGroup.vue';
 import { outputIndexes } from '../../state/items';
 import type { ExecutionRuntime } from '../../comfy/widget-bridge';
+import { clipboardImages, imageExtension, readClipboardImages, splitSupported, uploadedPath, uploadPastedImage } from '../../comfy/paste';
 
-const props = defineProps<{ store: MediaStore; runtime: ExecutionRuntime }>();
+const props = defineProps<{ store: MediaStore; runtime: ExecutionRuntime; isPasteTarget: (event: Event) => boolean }>();
 
 const readOnly = computed(() => props.store.data.readOnlyRaw !== null);
 const state = computed(() => props.store.data.state);
@@ -90,11 +91,14 @@ watch(
 onMounted(() => {
   window.addEventListener('focus', onVisible);
   document.addEventListener('visibilitychange', onVisible);
+  // Capture phase on window runs before ComfyUI's document paste listener, which would add a Load Image node.
+  window.addEventListener('paste', onPaste, true);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('focus', onVisible);
   document.removeEventListener('visibilitychange', onVisible);
+  window.removeEventListener('paste', onPaste, true);
 });
 
 function metaOf(item: Readonly<MediaItem>): MediaMeta | null {
@@ -137,6 +141,11 @@ async function probeFiles(files: FileEntry[]): Promise<Record<string, ProbeResul
   }
 }
 
+function probedMeta(file: FileEntry, results: Record<string, ProbeResult> | null): MediaMeta {
+  const result = results?.[file.path];
+  return isMeta(result) ? result : { size: file.size, mtime: file.mtime };
+}
+
 async function onBrowserConfirm(files: FileEntry[]): Promise<void> {
   const request = browser.value;
   browser.value = null;
@@ -148,18 +157,18 @@ async function onBrowserConfirm(files: FileEntry[]): Promise<void> {
     kinds.forEach((kind) => (notices[kind] = { tone: 'info', text: `Reading details of ${files.length} files…` }));
   }
   const results = await probeFiles(files);
-  const metaFor = (file: FileEntry): MediaMeta => {
-    const result = results?.[file.path];
-    return isMeta(result) ? result : { size: file.size, mtime: file.mtime };
-  };
-
   if (request.mode === 'replace') {
     const file = files[0];
-    props.store.replacePath(request.kind, request.itemId, file.path, metaFor(file));
+    props.store.replacePath(request.kind, request.itemId, file.path, probedMeta(file, results));
     notices[request.kind] = results ? null : { tone: 'warning', text: en.probeFailed };
     return;
   }
-  const report = props.store.addItems(files.map((file) => ({ path: file.path, kind: file.kind, meta: metaFor(file) })));
+  addFiles(files, results);
+}
+
+function addFiles(files: FileEntry[], results: Record<string, ProbeResult> | null): void {
+  const kinds = [...new Set(files.map((file) => file.kind))];
+  const report = props.store.addItems(files.map((file) => ({ path: file.path, kind: file.kind, meta: probedMeta(file, results) })));
   for (const kind of kinds) {
     const inactive = report?.[kind].inactive ?? 0;
     notices[kind] =
@@ -168,6 +177,67 @@ async function onBrowserConfirm(files: FileEntry[]): Promise<void> {
         : results
           ? null
           : { tone: 'warning', text: en.probeFailed };
+  }
+}
+
+function onPaste(event: ClipboardEvent): void {
+  if (readOnly.value || !props.isPasteTarget(event)) {
+    return;
+  }
+  const files = clipboardImages(event.clipboardData);
+  if (files.length === 0) {
+    return;
+  }
+  event.preventDefault();
+  event.stopPropagation();
+  void pasteImages(files);
+}
+
+async function pasteFromClipboard(): Promise<void> {
+  let files: File[];
+  try {
+    files = await readClipboardImages();
+  } catch {
+    notices.image = { tone: 'error', text: en.clipboardDenied };
+    return;
+  }
+  if (files.length === 0) {
+    notices.image = { tone: 'info', text: en.clipboardEmpty };
+    return;
+  }
+  await pasteImages(files);
+}
+
+/** Uploads pasted images to the input folder like core Load Image paste, then adds them in one undo step. */
+async function pasteImages(files: File[]): Promise<void> {
+  let places: Places;
+  try {
+    places = await getPlaces();
+  } catch {
+    notices.image = { tone: 'error', text: en.errors.network };
+    return;
+  }
+  const { supported, unsupported } = splitSupported(files, places.kinds.image);
+  const uploads = await Promise.allSettled(supported.map(uploadPastedImage));
+  const mtime = Date.now() / 1000;
+  const entries: FileEntry[] = uploads.flatMap((upload, index) =>
+    upload.status === 'fulfilled'
+      ? [{ type: 'file', name: upload.value.name, path: uploadedPath(places.comfy.input, upload.value), kind: 'image', size: supported[index].size, mtime }]
+      : [],
+  );
+  if (entries.length > 0) {
+    addFiles(entries, await probeFiles(entries));
+  }
+  const failed = uploads.length - entries.length;
+  const problem: GroupNotice | null =
+    failed > 0
+      ? { tone: 'error', text: en.pasteFailed(failed) }
+      : unsupported.length > 0
+        ? { tone: 'warning', text: en.pasteUnsupported([...new Set(unsupported.map(imageExtension))]) }
+        : null;
+  if (problem) {
+    const added = entries.length > 0 ? notices.image : null;
+    notices.image = added ? { ...problem, text: `${problem.text}; ${added.text}` } : problem;
   }
 }
 
@@ -349,6 +419,7 @@ function startResize(event: PointerEvent, above: MediaKind, below: MediaKind): v
           @relink="relink(kind, $event)"
           @preview="lightbox = { kind, index: $event }"
           @notify="notices[kind] = $event"
+          @paste="pasteFromClipboard"
         />
       </template>
     </template>
