@@ -74,5 +74,5 @@ export function useVirtualRows(
   watch(scroller, attach, { flush: 'post' });
   onBeforeUnmount(() => attach(null));
 
-  return { columns, range, padTop, padBottom, reveal };
+  return { columns, rowCount, range, padTop, padBottom, reveal };
 }

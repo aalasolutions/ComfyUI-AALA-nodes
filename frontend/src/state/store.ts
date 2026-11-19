@@ -80,6 +80,10 @@ export function createMediaStore(onCommit: () => void) {
       commit((state) => {
         state.ui.collapsed = { ...state.ui.collapsed, [kind]: collapsed };
       }),
+    setPaneSizes: (sizes: NonNullable<MediaState['ui']['sizes']>) =>
+      commit((state) => {
+        state.ui.sizes = sizes;
+      }),
     setLayout: (layout: MediaState['ui']['layout']) =>
       commit((state) => {
         state.ui.layout = layout;

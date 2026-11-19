@@ -5,6 +5,9 @@ export const DEFAULT_LIMIT = 9;
 
 export type MediaKind = (typeof KINDS)[number];
 
+/** Relative pane weights saved after the user drags a divider. */
+export type PaneSizes = Record<MediaKind, number>;
+
 export interface MediaItem {
   id: string;
   path: string;
@@ -18,7 +21,7 @@ export interface MediaState {
   version: number;
   limits: Record<MediaKind, number>;
   groups: Record<MediaKind, MediaItem[]>;
-  ui: { layout: 'list' | 'grid'; collapsed: Record<MediaKind, boolean> };
+  ui: { layout: 'list' | 'grid'; collapsed: Record<MediaKind, boolean>; sizes?: PaneSizes };
 }
 
 export type ParseResult = { ok: true; state: MediaState } | { ok: false; error: string };
@@ -90,6 +93,12 @@ export function parseState(raw: string): ParseResult {
   }
   if (isRecord(data.ui)) {
     state.ui = { ...state.ui, ...(data.ui as Partial<MediaState['ui']>) };
+    const sizes = parsePaneSizes(state.ui.sizes);
+    if (sizes) {
+      state.ui.sizes = sizes;
+    } else {
+      delete state.ui.sizes;
+    }
   }
   return { ok: true, state };
 }
@@ -204,6 +213,29 @@ function validateSplit(label: string, item: Record<string, unknown>): string | n
     return `${label}: split_of, part and parts must be set together with 1 <= part <= parts`;
   }
   return null;
+}
+
+/** Validated `ui.sizes` normalized to sum to 1, or null so the layout falls back to content sharing. */
+export function parsePaneSizes(value: unknown): PaneSizes | null {
+  if (!isRecord(value) || Object.keys(value).length !== KINDS.length) {
+    return null;
+  }
+  const sizes = {} as PaneSizes;
+  for (const kind of KINDS) {
+    const size = value[kind];
+    if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0) {
+      return null;
+    }
+    sizes[kind] = size;
+  }
+  const total = KINDS.reduce((sum, kind) => sum + sizes[kind], 0);
+  for (const kind of KINDS) {
+    sizes[kind] /= total;
+    if (!Number.isFinite(sizes[kind]) || sizes[kind] <= 0) {
+      return null;
+    }
+  }
+  return sizes;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

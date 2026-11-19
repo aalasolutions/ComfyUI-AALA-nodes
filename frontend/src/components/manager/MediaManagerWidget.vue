@@ -3,7 +3,8 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowReactive, w
 import { isMeta, nearestExistingFolder, parentPath, probePaths, type FileEntry, type MediaMeta, type ProbeResult } from '../../api/fs';
 import type { BrowserRequest } from '../../browser/request';
 import { en } from '../../i18n/en';
-import { KINDS, type MediaItem, type MediaKind } from '../../state/schema';
+import { distributePanes, paneSizesFrom, resizePanes, type Pane } from '../../state/panes';
+import { KINDS, type MediaItem, type MediaKind, type PaneSizes } from '../../state/schema';
 import type { MediaStore } from '../../state/store';
 import FileBrowserDialog from '../browser/FileBrowserDialog.vue';
 import Icon from '../ui/Icon.vue';
@@ -171,10 +172,122 @@ async function onBrowserConfirm(files: FileEntry[]): Promise<void> {
 }
 
 const lightboxItems = computed(() => (lightbox.value ? state.value.groups[lightbox.value.kind] : []));
+
+// Panes: the open lists share the widget height; dividers between them save proportions in ui.sizes.
+type GroupView = InstanceType<typeof MediaGroup>;
+const manager = ref<HTMLElement | null>(null);
+const groupViews = shallowReactive<Partial<Record<MediaKind, GroupView | null>>>({});
+// Stable ref callbacks: inline ones would reset the entry to null on every render.
+const groupRef = Object.fromEntries(
+  KINDS.map((kind) => [
+    kind,
+    (view: unknown) => {
+      groupViews[kind] = view as GroupView | null;
+    },
+  ]),
+) as Record<MediaKind, (view: unknown) => void>;
+const available = ref(0);
+const dragSizes = ref<PaneSizes | null>(null);
+const resizing = ref<MediaKind | null>(null);
+
+const panes = computed<Pane[]>(() =>
+  KINDS.flatMap((kind) => {
+    const pane = groupViews[kind]?.pane;
+    return pane ? [{ kind, ...pane }] : [];
+  }),
+);
+const paneHeights = computed(() => distributePanes(panes.value, available.value, dragSizes.value ?? state.value.ui.sizes ?? null));
+// Each open list after the first gets a divider shared with the previous open list.
+const dividerAbove = computed(() => {
+  const above: Partial<Record<MediaKind, MediaKind>> = {};
+  for (let index = 1; index < panes.value.length; index += 1) {
+    above[panes.value[index].kind] = panes.value[index - 1].kind;
+  }
+  return above;
+});
+
+function measure(): void {
+  const element = manager.value;
+  const root = element?.parentElement;
+  if (!element || !root) {
+    return;
+  }
+  const lists = panes.value.reduce((sum, pane) => sum + (groupViews[pane.kind]?.scroller?.offsetHeight ?? 0), 0);
+  available.value = Math.max(0, root.clientHeight - (element.offsetHeight - lists));
+}
+
+let measureFrame = 0;
+function scheduleMeasure(): void {
+  if (measureFrame === 0) {
+    measureFrame = requestAnimationFrame(() => {
+      measureFrame = 0;
+      measure();
+    });
+  }
+}
+
+let sizeObserver: ResizeObserver | null = null;
+onMounted(() => {
+  sizeObserver = new ResizeObserver(scheduleMeasure);
+  if (manager.value) {
+    sizeObserver.observe(manager.value);
+    if (manager.value.parentElement) {
+      sizeObserver.observe(manager.value.parentElement);
+    }
+  }
+  measure();
+});
+onBeforeUnmount(() => {
+  sizeObserver?.disconnect();
+  cancelAnimationFrame(measureFrame);
+});
+
+function startResize(event: PointerEvent, above: MediaKind, below: MediaKind): void {
+  const handle = event.currentTarget as HTMLElement;
+  const top = panes.value.find((pane) => pane.kind === above);
+  const bottom = panes.value.find((pane) => pane.kind === below);
+  if (event.button !== 0 || !top || !bottom || !manager.value) {
+    return;
+  }
+  const base = paneSizesFrom(paneHeights.value, state.value.ui.sizes ?? null, available.value);
+  const heights = distributePanes(panes.value, available.value, base);
+  const abovePane = { ...top, height: heights[above] ?? 0 };
+  const belowPane = { ...bottom, height: heights[below] ?? 0 };
+  // The canvas may zoom the widget; pointer deltas are in screen pixels.
+  const scale = manager.value.offsetHeight ? manager.value.getBoundingClientRect().height / manager.value.offsetHeight : 1;
+  const startY = event.clientY;
+
+  const onMove = (move: PointerEvent) => {
+    const delta = (move.clientY - startY) / (scale || 1);
+    const sizes = resizePanes(base, abovePane, belowPane, delta);
+    dragSizes.value = distributePanes(panes.value, available.value, sizes)[above] === abovePane.height ? null : sizes;
+  };
+  const finish = (keep: boolean) => {
+    handle.removeEventListener('pointermove', onMove);
+    handle.removeEventListener('pointerup', onUp);
+    handle.removeEventListener('pointercancel', onCancel);
+    handle.removeEventListener('lostpointercapture', onUp);
+    const sizes = dragSizes.value;
+    dragSizes.value = null;
+    resizing.value = null;
+    if (keep && sizes) {
+      props.store.setPaneSizes(sizes);
+    }
+  };
+  const onUp = () => finish(true);
+  const onCancel = () => finish(false);
+
+  handle.setPointerCapture(event.pointerId);
+  handle.addEventListener('pointermove', onMove);
+  handle.addEventListener('pointerup', onUp);
+  handle.addEventListener('pointercancel', onCancel);
+  handle.addEventListener('lostpointercapture', onUp);
+  resizing.value = below;
+}
 </script>
 
 <template>
-  <div class="aala-manager" @pointerdown.stop>
+  <div ref="manager" class="aala-manager" :class="{ 'aala-manager--resizing': resizing }" @pointerdown.stop>
     <StatusBanner
       v-if="store.data.status"
       :tone="store.data.status.tone"
@@ -213,20 +326,31 @@ const lightboxItems = computed(() => (lightbox.value ? state.value.groups[lightb
           </button>
         </div>
       </div>
-      <MediaGroup
-        v-for="kind in KINDS"
-        :key="kind"
-        :store="store"
-        :kind="kind"
-        :notice="notices[kind]"
-        :meta-of="metaOf"
-        :missing-text="missingText"
-        @add="openAdd(kind)"
-        @replace="openReplace(kind, $event, parentPath($event.path))"
-        @relink="relink(kind, $event)"
-        @preview="lightbox = { kind, index: $event }"
-        @notify="notices[kind] = $event"
-      />
+      <template v-for="kind in KINDS" :key="kind">
+        <div
+          v-if="dividerAbove[kind]"
+          class="aala-pane-divider"
+          :class="{ 'aala-pane-divider--active': resizing === kind }"
+          role="separator"
+          aria-orientation="horizontal"
+          title="Drag to resize"
+          @pointerdown.stop.prevent="startResize($event, dividerAbove[kind]!, kind)"
+        />
+        <MediaGroup
+          :ref="groupRef[kind]"
+          :store="store"
+          :kind="kind"
+          :notice="notices[kind]"
+          :meta-of="metaOf"
+          :missing-text="missingText"
+          :pane-height="paneHeights[kind] ?? null"
+          @add="openAdd(kind)"
+          @replace="openReplace(kind, $event, parentPath($event.path))"
+          @relink="relink(kind, $event)"
+          @preview="lightbox = { kind, index: $event }"
+          @notify="notices[kind] = $event"
+        />
+      </template>
     </template>
     <FileBrowserDialog
       v-if="browser"

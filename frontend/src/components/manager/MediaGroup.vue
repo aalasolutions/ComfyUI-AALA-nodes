@@ -23,6 +23,7 @@ const props = defineProps<{
   notice: GroupNotice | null;
   metaOf: (item: Readonly<MediaItem>) => MediaMeta | null;
   missingText: (item: Readonly<MediaItem>) => string | null;
+  paneHeight: number | null;
 }>();
 const emit = defineEmits<{
   add: [];
@@ -48,18 +49,27 @@ const menu = ref<{ x: number; y: number; items: MenuItem[] } | null>(null);
 const list = ref<HTMLElement | null>(null);
 const scroller = ref<HTMLElement | null>(null);
 
-// Fixed card sizes (see .aala-card--list and .aala-card--grid) so the capped list can be virtualized.
+// Fixed card sizes (see .aala-card--list and .aala-card--grid) so the list can be virtualized and measured.
 const LIST_ROW = 50;
 const LIST_GAP = 4;
 const GRID_ROW = 132;
 const GRID_GAP = 6;
 const GRID_MIN_WIDTH = 116;
 
+const rowGap = computed(() => (layout.value === 'grid' ? GRID_GAP : LIST_GAP));
+const rowPitch = computed(() => (layout.value === 'grid' ? GRID_ROW : LIST_ROW) + rowGap.value);
 const virtual = useVirtualRows(scroller, {
   count: computed(() => items.value.length),
-  rowHeight: computed(() => (layout.value === 'grid' ? GRID_ROW + GRID_GAP : LIST_ROW + LIST_GAP)),
+  rowHeight: rowPitch,
   minColumnWidth: computed(() => (layout.value === 'grid' ? GRID_MIN_WIDTH + GRID_GAP : 0)),
 });
+// What the widget needs to size this group's list; null when the list is not shown.
+const pane = computed(() =>
+  collapsed.value || items.value.length === 0
+    ? null
+    : { content: virtual.rowCount.value * rowPitch.value - rowGap.value, floor: rowPitch.value - rowGap.value },
+);
+defineExpose({ pane, scroller });
 const visibleItems = computed(() =>
   items.value.slice(virtual.range.value.start, virtual.range.value.end).map((item, offset) => ({
     item,
@@ -328,6 +338,7 @@ function onLimitChange(event: Event): void {
         v-if="items.length"
         ref="scroller"
         class="aala-items-scroll"
+        :style="paneHeight === null ? undefined : { height: `${paneHeight}px` }"
       >
         <div
           ref="list"
