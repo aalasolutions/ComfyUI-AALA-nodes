@@ -99,6 +99,7 @@ onBeforeUnmount(() => {
   window.removeEventListener('focus', onVisible);
   document.removeEventListener('visibilitychange', onVisible);
   window.removeEventListener('paste', onPaste, true);
+  clearTimeout(pastedTimer);
 });
 
 function metaOf(item: Readonly<MediaItem>): MediaMeta | null {
@@ -208,8 +209,13 @@ async function pasteFromClipboard(): Promise<void> {
   await pasteImages(files);
 }
 
+const PASTED_NOTICE_MS = 4000;
+let pastedTimer: ReturnType<typeof setTimeout> | undefined;
+
 /** Uploads pasted images to the input folder like core Load Image paste, then adds them in one undo step. */
 async function pasteImages(files: File[]): Promise<void> {
+  clearTimeout(pastedTimer);
+  notices.image = { tone: 'info', text: en.pasting(files.length) };
   let places: Places;
   try {
     places = await getPlaces();
@@ -238,6 +244,14 @@ async function pasteImages(files: File[]): Promise<void> {
   if (problem) {
     const added = entries.length > 0 ? notices.image : null;
     notices.image = added ? { ...problem, text: `${problem.text}; ${added.text}` } : problem;
+  } else if (entries.length > 0 && !notices.image) {
+    const pasted: GroupNotice = { tone: 'info', text: en.pasteAdded(entries.length) };
+    notices.image = pasted;
+    pastedTimer = setTimeout(() => {
+      if (notices.image?.text === pasted.text) {
+        notices.image = null;
+      }
+    }, PASTED_NOTICE_MS);
   }
 }
 

@@ -16,6 +16,8 @@ export const en = {
   copyFailed: 'Could not copy the path',
   probeFailed: 'Could not read file details; added without them',
   pasteFailed: (count: number) => `Could not upload ${plural(count, 'pasted image')}`,
+  pasting: (count: number) => `Pasting ${plural(count, 'image')}…`,
+  pasteAdded: (count: number) => `${plural(count, 'image')} added`,
   pasteUnsupported: (types: string[]) => `Unsupported image type: ${types.join(', ')}`,
   clipboardDenied: 'The browser did not allow reading the clipboard',
   clipboardEmpty: 'No image on the clipboard',
